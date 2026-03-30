@@ -1,61 +1,51 @@
-## Storage Account Creation YAML
+# Storage: Storage Account and Blob Container
 
-Do not ever feel like you can't just copy and paste from work you already did.  I took the YAML file for the Linux VM and tweaked it for the storage account. 
+## Storage Account — YAML Pipeline
 
-I also used this as Microsoft Learn guide: [Quickstart: Deploy Bicep files by using GitHub Actions](http://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/deploy-github-actions?tabs=CLI%2Copenid)
+Reused the Linux VM deployment YAML as a starting point and adapted it for the storage account. No reason to start from scratch when the structure is the same.
 
-Other Changes I Made:
+Reference: [Quickstart: Deploy Bicep files using GitHub Actions](http://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/deploy-github-actions?tabs=CLI%2Copenid)
 
-1. Added the bicep lint to the YAML file
-2. Changed the Secret structure to point to the JSON script that houses the Tenant ID, Subscription ID, and Client ID
+Changes made from the original VM pipeline:
 
-# Storage Account Created 
+- Added Bicep lint step to the workflow
+- Updated the secret structure to reference a JSON file containing Tenant ID, Subscription ID, and Client ID
 
-I ran the new storage account [yaml](https://github.com/shevonnepolastre/minecraft-azure-quests/blob/main/quests/02-storage/deploy-storage-account.yml) and it created a new [storage account](https://github.com/shevonnepolastre/minecraft-azure-quests/blob/main/quests/02-storage/storage.bicep).  
+Ran the updated [YAML](https://github.com/shevonnepolastre/minecraft-azure-quests/blob/main/quests/02-storage/deploy-storage-account.yml) which deployed the [storage account Bicep template](https://github.com/shevonnepolastre/minecraft-azure-quests/blob/main/quests/02-storage/storage.bicep) successfully.
 
-# Blob Creation
+---
 
-Creating the blob container in the portal is super easy.  If you want to use Powershell, you can use the cmdlet "New-AzStorageContainer"
+## Blob Container Creation
 
-Before you can use that cmdlet, you have to pass in a storage context.  
+Portal creation is straightforward. To do it via PowerShell, use `New-AzStorageContainer` — but you need to pass a storage context first.
 
-```powershell 
+Create the context:
 
-New-AzStorageContext -StorageAccountName "storageaccountname" -StorageAccountKey "ends with ==" 
-
+```powershell
+New-AzStorageContext -StorageAccountName "storageaccountname" -StorageAccountKey "ends with =="
 ```
 
-You will get the following message:
+This returns the storage context object with endpoints for blob, table, queue, and file. The context is then passed into subsequent commands.
 
-StorageAccountName  : storageaccountname
-BlobEndPoint        : https://storageaccountname.blob.core.windows.net/
-TableEndPoint       : https://storageaccountname.table.core.windows.net/
-QueueEndPoint       : https://storageaccountname.queue.core.windows.net/
-FileEndPoint        : https://storageaccountname.file.core.windows.net/
-Context             : Microsoft.WindowsAzure.Commands.Storage.Common.AzureStorageContext
-Name                : 
-StorageAccount      : BlobEndpoint=https://storageaccountname.blob.core.windows.net/;QueueEndpoint=https://storageaccountname.queue.co
-                      re.windows.net/;TableEndpoint=https://storageaccountname.table.core.windows.net/;FileEndpoint=https://storageaccountname
-                      2kuwb4em.file.core.windows.net/;AccountName=storageaccountname;AccountKey=[key hidden]
-TableStorageAccount : BlobEndpoint=https://storageaccountname.blob.core.windows.net/;QueueEndpoint=https://storageaccountname.queue.co
-                      re.windows.net/;TableEndpoint=https://storageaccountname.table.core.windows.net/;FileEndpoint=https://storageaccountname
-                      2kuwb4em.file.core.windows.net/;DefaultEndpointsProtocol=https;AccountName=storageaccountname;AccountKey=[key 
-                      hidden]
-Track2OauthToken    : 
-ShareTokenIntent    : 
-EndPointSuffix      : core.windows.net/
-ConnectionString    : BlobEndpoint=https://storageaccountname.blob.core.windows.net/;QueueEndpoint=https://storageaccountname.queue.co
-                      re.windows.net/;TableEndpoint=https://storageaccountname.table.core.windows.net/;FileEndpoint=https://storageaccountname
-                      2kuwb4em.file.core.windows.net/;AccountName=storageaccountname;AccountKey=randomlettersandnumbers==
-ExtendedProperties  : {}
+Two things to sort out before the container creation will succeed:
 
-I then expanded on it (Please see the [powershell script](https://github.com/shevonnepolastre/minecraft-azure-quests/blob/main/quests/02-storage/create-blob-container.ps1))
+1. **Temporarily enable public IP access** — use `Add-AzStorageAccountNetworkRule` to whitelist your IP
+2. **Use the correct storage account key** — had to switch to the second key before it worked
 
-I did have to temporarily enable Public IP.  You would use the Add-AzStorageAccountNetworkRule.
-Also, I have to add the secod key.  After that I got the following:
+Full PowerShell script: [create-blob-container.ps1](https://github.com/shevonnepolastre/minecraft-azure-quests/blob/main/quests/02-storage/create-blob-container.ps1)
 
-Name                 PublicAccess         LastModified                   IsDeleted  VersionId
-----                 ------------         ------------                   ---------  ---------
-worldstorage         Off                  4/10/2025 2:38:29 AM +00:00         
+Container created successfully:
 
+| Name | Public Access | Last Modified | 
+|------|--------------|---------------|
+| worldstorage | Off | 4/10/2025 2:38:29 AM UTC |
 
+---
+
+## Step 6: Install Geyser for Bedrock Cross-Play
+
+[Guide here](https://github.com/shevonnepolastre/minecraft-azure-lab/blob/main/docs/bedrock-support.md).
+
+Used the Fabric mod version rather than the standalone. The standalone works but requires
+restarting Geyser separately after every VM restart, and it needs its own terminal session.
+The Fabric mod handles everything in a single launch — cleaner operationally.
